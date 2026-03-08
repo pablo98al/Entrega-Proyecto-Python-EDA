@@ -1,93 +1,177 @@
 # Entrega Proyecto Python EDA
 
-## 📊 Data sets utilizados
+## 📋 Descripción del proyecto
 
-Estos conjuntos de datos están relacionados con campañas de marketing directo de una institución bancaria portuguesa. Las campañas de marketing se basaron en llamadas telefónicas. A menudo, se requería más de un contacto con el mismo cliente para determinar si el producto (depósito a plazo bancario) sería suscrito o no. Las columnas que tenemos en el primer dataset ('bank-additional.csv') son:
+Análisis exploratorio de datos (EDA) sobre campañas de marketing directo de una institución bancaria. El objetivo es identificar los factores que influyen en que un cliente suscriba un depósito a plazo bancario (`y = yes/no`), a partir de variables demográficas, financieras, de campaña, macroeconómicas y de perfil de cliente.
 
-age: La edad del cliente.
+---
 
-● job: La ocupación o profesión del cliente.
+## 📊 Datasets utilizados
 
-● marital: El estado civil del cliente.
+### 1. `bank-additional.csv`
 
-● education: El nivel educativo del cliente.
+Dataset principal con 43.000 registros y 23 variables sobre clientes contactados en campañas telefónicas (2015–2019).
 
-● default: Indica si el cliente tiene algún historial de incumplimiento de pagos (1: Sí, 0: No).
+| Tipo | Variables |
+|------|-----------|
+| Demográficas | `age`, `job`, `marital`, `education` |
+| Financieras | `default`, `housing`, `loan` |
+| Campaña | `contact`, `duration`, `campaign`, `pdays`, `previous`, `poutcome` |
+| Macroeconómicas | `emp.var.rate`, `cons.price.idx`, `cons.conf.idx`, `euribor3m`, `nr.employed` |
+| Geo/Tiempo | `date`, `latitude`, `longitude` |
+| Target | `y` (suscribió: yes/no) |
 
-● housing: Indica si el cliente tiene un préstamo hipotecario (1: Sí, 0: No).
+### 2. `customer-details.xlsx`
 
-● loan: Indica si el cliente tiene algún otro tipo de préstamo (1: Sí, 0: No).
+Archivo Excel con 3 hojas (clientes 2012, 2013 y 2014) combinadas en un único DataFrame de 43.170 registros con variables de perfil del cliente: `Income`, `Kidhome`, `Teenhome`, `Dt_Customer`, `NumWebVisitsMonth`, `ID`.
 
-● contact: El método de contacto utilizado para comunicarse con el cliente.
+---
 
-● duration: La duración en segundos de la última interacción con el cliente.
+## 🗂️ Estructura del repositorio
 
-● campaign: El número de contactos realizados durante esta campaña para este cliente.
+```
+├── README.md
+├── DataProyecto/
+│   └── Bruto/
+│       ├── bank-additional.csv
+│       └── customer-details.xlsx
+└── EDA/
+    ├── EDA_bank-additional.ipynb
+    └── EDA_Clientes.ipynb
+```
 
-● pdays: Número de días que han pasado desde la última vez que se contactó con el cliente durante esta campaña.
+---
 
-● previous: Número de veces que se ha contactado con el cliente antes de esta campaña.
+## 🔧 Pasos seguidos
 
-● poutcome: Resultado de la campaña de marketing anterior.
+### Notebook 1 — `EDA_bank-additional.ipynb`
 
-● emp.var.rate: La tasa de variación del empleo.
+**Carga de datos**
 
-● cons.price.idx: El índice de precios al consumidor.
+- Carga del CSV principal con `pd.read_csv()`
 
-● cons.conf.idx: El índice de confianza del consumidor.
+**Limpieza y transformación**
 
-● euribor3m: La tasa de interés de referencia a tres meses.
+- Eliminación de la columna `Unnamed: 0` (índice residual)
+- Conversión de columnas numéricas almacenadas como `object` (`cons.price.idx`, `cons.conf.idx`, `euribor3m`, `nr.employed`) — problema causado por el uso de comas como separador decimal, resuelto con `.str.replace(',', '.')` y `pd.to_numeric()`
+- Parseo de fechas en español (ej. `2-agosto-2019`) mediante diccionario de traducción de meses y conversión con `pd.to_datetime()`
+- Conversión de columnas categóricas (`job`, `marital`, `education`, `contact`, `poutcome`) a dtype `category`
+- Conversión de `age` a `Int64` (acepta nulos)
 
-● nr.employed: El número de empleados.
+**Análisis descriptivo**
 
-● y: Indica si el cliente ha suscrito un producto o servicio (Sí/No).
+- `df.describe().T` para estadísticas de tendencia central y dispersión
+- Identificación de valores nulos: ~5.000 en `age`, ~9.000 en `euribor3m`, ~500 en `cons.price.idx`
+- Detección de valor especial `pdays = 999` (indica cliente no contactado previamente)
 
-● date: La fecha en la que se realizó la interacción con el cliente.
+---
 
-● contact_month: Mes en el que se realizó la interacción con el cliente durante la campaña de marketing.
+### Notebook 2 — `EDA_Clientes.ipynb`
 
-● contact_year: Año en el que se realizó la interacción con el cliente durante la campaña de marketing.
+**Carga de datos**
 
-● id_: Un identificador único para cada registro en el dataset.
+- Carga de las 3 hojas del Excel con `pd.read_excel(sheet_name=...)` y combinación con `pd.concat()`
 
-El segundo set de datos ('customer-details.xlsx') es un archivo Excel que nos da información sobre las características demográficas y comportamiento de compra de los clientes del banco. Este Excel consta de 3 hojas de trabajo diferentes, en cada una de ellas tenemos los clientes que entraron en el banco en diferentes años. Sus columnas son:
+**Limpieza y transformación**
 
-● Income: Representa el ingreso anual del cliente en términos monetarios.
+- Eliminación de `Unnamed: 0`
+- Verificación de nulos (ninguno en todo el dataset)
+- Verificación y eliminación de duplicados por `ID`
+- Revisión de outliers en `Income` mediante método IQR
+- Conversión de `Kidhome` y `Teenhome` a dtype `category`
+- `Dt_Customer` ya estaba en `datetime64` correctamente desde la carga
 
-● Kidhome: Indica el número de niños en el hogar del cliente.
+---
 
-● Teenhome: Indica el número de adolescentes en el hogar del cliente.
+## 📊 Visualizaciones realizadas
 
-● Dt_Customer: Representa la fecha en que el cliente se convirtió en cliente de la empresa.
+### `EDA_bank-additional.ipynb`
 
-● NumWebVisitsMonth: Indica la cantidad de visitas mensuales del cliente al sitio web de la empresa.
+1. Distribución del target (`y`) — desbalance de clases
+2. Boxplots de variables numéricas vs target
+3. Tasas de conversión por variables categóricas
+4. Mapa de correlaciones entre variables numéricas
+5. Evolución temporal de la tasa de conversión mensual (con anotación de máximo y mínimo)
+6. Distribución geográfica de clientes (scatter latitud/longitud)
 
-● ID: Identificador único del cliente.
+### `EDA_Clientes.ipynb`
 
-## 🏃‍♂️Método de entrega
+1. Histogramas de `Income` y `NumWebVisitsMonth` con KDE
+2. Countplots de `Kidhome` y `Teenhome`
+3. Comparativa `Kidhome` vs `Teenhome`
+4. Evolución temporal de nuevas altas de clientes por mes (con anotación de bajada)
+5. Boxplots de `Income` por `Kidhome` y `Teenhome`
+6. Scatter plot `Income` vs `NumWebVisitsMonth`
 
-La entrega del proyecto se hará a través de GitHub. Deberá de estar público hasta la finalización del curso. Tu repositorio tiene que constar, al menos, de los siguientes archivos/carpetas:
+---
 
-    ● Archivo README.md, que recoja los pasos seguidos durante el proyecto y el informe de tú análisis.
+## 📈 Principales hallazgos
 
-    ● Una carpeta de datos donde guardes los archivos en bruto, asociados a este proyecto, y los datos guardados después de las transformaciones.
+### Dataset `bank-additional.csv`
 
-    ● Una carpeta con los notebooks o archivos py donde hayas realizado todos los pasos pedidos en el proyecto
+**Variables numéricas**
 
-## 📌 Criterios de evaluación
+- **`duration`** es la variable más discriminante: las llamadas más largas se asocian consistentemente con suscripción. Puede contener *data leakage* ya que la duración se conoce solo al finalizar la llamada.
+- **`euribor3m`**, **`emp.var.rate`** y **`nr.employed`** muestran que los clientes suscriben más cuando los tipos de interés son bajos
+- **`previous`**: los clientes con historial de contacto previo tienen mayor propensión a suscribir.
+- **`age`** y **`campaign`** no muestran diferencias significativas entre grupos.
 
-● Transformación y limpieza de los datos: Capacidad para detectar y corregir errores, manejar datos faltantes y realizar modificaciones adecuadas a las columnas y tipos de datos.
+**Correlaciones entre variables numéricas**
 
-● Uso de los conceptos cubiertos en los módulos de “Python” y “Python for data”: Demostrar un dominio claro de estructuras de datos como listas, diccionarios, funciones, manejo de archivos, y uso eficiente de Pandas para la manipulación de datos.
+- `emp.var.rate`, `euribor3m` y `nr.employed` están altamente correlacionadas entre sí (r > 0.90) — prácticamente redundantes, miden el mismo estado.
+- `pdays` y `previous` muestran correlación negativa (-0.59), coherente con su significado.
+- `duration`, `age` y `campaign` son independientes del resto.
 
-● Análisis descriptivo de los datos: Realizar un análisis estadístico adecuado para describir los principales atributos del conjunto de datos (medias, medianas, desviaciones estándar, correlaciones, etc.).
+**Variables categóricas**
 
-● Visualización: Crear gráficos claros y efectivos utilizando matplotlib, seaborn u otras librerías, para ilustrar patrones y relaciones relevantes en los datos.
+- **`poutcome`** es la variable más potente: los clientes con resultado exitoso en la campaña anterior convierten al, frente al ~8% sin historial.
+- **`job`**: los **estudiantes** y **jubilados** presentan las tasas de conversión más altas. Los trabajadores *blue-collar* son el perfil con menor conversión (~5%).
+- **`contact`**: el contacto por **móvil dobla** la tasa de conversión respecto al teléfono fijo.
+- **`education`**: a mayor nivel educativo universitario, mayor conversión.
+- **`marital`**: los solteros convierten ligeramente más, pero las diferencias entre grupos son pequeñas.
 
-● Uso eficiente de pandas: Realizar operaciones como filtrado, agrupamiento, agregaciones, creación de nuevas columnas, y combinaciones de dataframes para extraer insights de los datos.
+**Evolución temporal**
 
-● Optimización del código en Python: Aplicar buenas prácticas de programación, como evitar duplicidades, uso eficiente de bucles y comprensión de listas.
+- La tasa de conversión se mantiene estable entre el durante todo el período 2015–2019, sin tendencia clara ni estacionalidad fuerte. El pico máximo se registra en septiembre 2016 (~14.5%) y el mínimo en julio 2017.
 
-● Informe explicativo del análisis: Presentar de manera clara los resultados del análisis con justificaciones basadas en datos y conclusiones bien fundamentadas.
+**Distribución geográfica**
 
-● Readme del proyecto: Incluir un README detallado que describa el propósito del proyecto, los pasos para ejecutarlo y los principales hallazgos.
+- Las coordenadas cubren el territorio de EEUU pero la distribución de conversiones es completamente homogénea. La ubicación geográfica no aporta valor predictivo y las variables `latitude` y `longitude` son sintéticas.
+
+---
+
+### Dataset `customer-details.xlsx`
+
+El análisis exploratorio reveló que este dataset es **completamente sintético**, generado con distribuciones artificiales. Los indicadores que lo confirman son:
+
+- **`Income`** presenta una distribución perfectamente uniforme entre 5.841 y 180.802 — imposible en datos reales de ingresos.
+- **`NumWebVisitsMonth`** muestra una distribución bimodal anómala con un pico artificial en el valor máximo (32).
+- **`Kidhome`** y **`Teenhome`** tienen exactamente el mismo número de registros para los valores 0, 1 y 2 (~14.300 cada uno) — distribución uniforme perfecta.
+- El scatter plot `Income` vs `NumWebVisitsMonth` forma una **cuadrícula perfecta**, confirmando que ambas variables son totalmente independientes y generadas aleatoriamente.
+- **`Income` no varía** en absoluto según el número de hijos o adolescentes en casa.
+
+La única variable con comportamiento real es **`Dt_Customer`**, que muestra una caída significativa de nuevas altas de clientes entre noviembre de 2012 y abril de 2013.
+
+---
+
+## 🏁 Conclusiones generales
+
+Los factores con mayor influencia en la suscripción de un depósito son, por orden de importancia:
+
+1. **Resultado de campaña anterior** (`poutcome = success`) — clientes con historial positivo convierten al 65%
+2. **Duración de la llamada** (`duration`) — mayor duración implica mayor conversión
+3. **Contexto macroeconómico** (`euribor3m` bajo) — tipos de interés bajos favorecen la suscripción
+4. **Perfil del cliente** (`job`: estudiantes y jubilados; `contact`: móvil)
+
+Las variables geográficas y temporales no aportan poder predictivo relevante. El dataset `customer-details.xlsx`, al ser sintético, no permite extraer conclusiones de negocio fiables más allá de la evolución temporal de altas de clientes.
+
+---
+
+## ▶️ Cómo ejecutar el proyecto
+
+1. Clonar el repositorio
+2. Instalar dependencias: `pip install pandas matplotlib seaborn openpyxl`
+3. Ejecutar los notebooks en orden:
+   - `EDA/EDA_Clientes.ipynb`
+   - `EDA/EDA_bank-additional.ipynb`
+4. Los datos en bruto deben estar en `DataProyecto/Bruto/`
